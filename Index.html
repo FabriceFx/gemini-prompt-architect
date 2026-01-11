@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <title>Gemini Prompt Architecte</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Configuration Tailwind par défaut (Inter font)
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Inter"', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+
+    <style>
+      /* Styles syntaxiques pour le JSON */
+      .json-key { color: #2563eb; font-weight: 600; } /* Blue-600 */
+      .json-string { color: #16a34a; }
+      .json-number { color: #d97706; }
+      .json-bool { color: #7e22ce; font-weight: bold; }
+      
+      /* Scrollbar fine générique */
+      .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+      
+      /* Animation Spinner */
+      .spinner {
+        border: 2px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top: 2px solid #ffffff;
+        width: 16px;
+        height: 16px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+      }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body class="bg-slate-50 min-h-screen font-sans text-slate-800 selection:bg-blue-100 selection:text-blue-900">
+
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+      <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="bg-blue-600 text-white p-2 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+          </div>
+          <span class="text-slate-700 font-bold text-xl tracking-tight">Prompt Architecte</span>
+        </div>
+        <span class="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-full border border-blue-200">
+          V1.3
+        </span>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 md:p-8">
+      
+      <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-200 flex flex-col h-full">
+        <div class="mb-6 border-b border-gray-100 pb-4">
+          <h2 class="text-xl font-bold text-slate-800">Configuration du prompt</h2>
+          <p class="text-sm text-gray-500 font-light mt-1">Générez une consigne structurée pour l'IA Gemini.</p>
+        </div>
+
+        <form id="promptForm" class="space-y-5 flex-grow overflow-y-auto pr-2 custom-scrollbar-light">
+          
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Le rôle / Persona</label>
+            <input type="text" id="role" placeholder="Ex: Chef de Projet, Data Analyst, Copywriter..." 
+                   class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-gray-50 transition placeholder-gray-400 font-light"
+                   oninput="updateJson()">
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">La mission (Task)</label>
+            <textarea id="task" rows="2" placeholder="Ex: Synthétiser ce compte-rendu de réunion." 
+                      class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-gray-50 transition placeholder-gray-400 font-light"
+                      oninput="updateJson()"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Le contexte</label>
+            <textarea id="context" rows="2" placeholder="Ex: Public cible, historique du projet, contraintes techniques..." 
+                      class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-gray-50 transition placeholder-gray-400 font-light"
+                      oninput="updateJson()"></textarea>
+          </div>
+
+          <div class="grid grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">Le ton</label>
+              <select id="tone" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-gray-50 font-light" onchange="updateJson()">
+                <option value="Professionnel">Professionnel</option>
+                <option value="Didactique">Didactique / Pédagogique</option>
+                <option value="Analytique">Analytique / Factuel</option>
+                <option value="Direct">Direct / Concis</option>
+                <option value="Empathique">Empathique / Bienveillant</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-slate-700 mb-1">Le format de sortie</label>
+              <select id="format" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-gray-50 font-light" onchange="updateJson()">
+                <option value="Texte brut">Texte brut (Sans formatage)</option>
+                <option value="Markdown">Markdown (Structuré)</option>
+                <option value="Liste">Liste à puces</option>
+                <option value="JSON">Objet JSON (Code)</option>
+                <option value="Tableau">Tableau HTML/CSV</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Les données (Input)</label>
+            <textarea id="inputData" rows="5" placeholder="Collez ici le texte ou les données à traiter..." 
+                      class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5 bg-gray-50 font-mono text-xs text-gray-600"
+                      oninput="updateJson()"></textarea>
+            <p class="text-xs text-gray-400 mt-1 italic">Si laissé vide, ce champ sera exclu du résultat final.</p>
+          </div>
+        </form>
+      </div>
+
+      <div class="flex flex-col h-full gap-5">
+        
+        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden flex flex-col flex-grow relative">
+          <div class="bg-slate-900 px-5 py-3 border-b border-slate-700 flex justify-between items-center">
+            <span class="text-xs font-mono text-slate-400 opacity-80 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+              prompt.json
+            </span>
+            <span class="text-[10px] text-white bg-blue-600 px-2 py-0.5 rounded font-bold tracking-wider">PREVIEW</span>
+          </div>
+
+          <div class="p-5 overflow-auto flex-grow custom-scrollbar bg-slate-800">
+            <pre id="jsonOutput" class="font-mono text-sm text-gray-300 leading-relaxed"></pre>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <button onclick="copyToClipboard()" id="btnCopy" 
+                  class="bg-white hover:bg-gray-50 text-slate-700 font-semibold py-3 px-4 rounded shadow-sm border border-gray-300 transition flex justify-center items-center gap-2 group">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 group-hover:scale-110 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            <span>Copier</span>
+          </button>
+
+          <button onclick="saveToDrive()" id="btnSave" 
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded shadow-md transition flex justify-center items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12.01 1.993C12.007 1.993 12.003 1.993 12 1.993C7.903 1.993 4.293 4.21 2.34 7.82L2.183 8.097L7.69 17.633L12.01 10.15L16.273 2.763C14.977 2.257 13.53 1.993 12.01 1.993ZM18.57 3.32L14.247 10.81L18.667 18.463L18.893 18.073C20.85 14.463 20.85 10.08 18.893 6.47L18.57 3.32ZM8.847 19.637L3.41 10.22L3.183 10.61C1.227 14.22 1.227 18.603 3.183 22.213L3.5 22.53H11.75L15.937 15.277L8.847 19.637Z"/></svg>
+            <span>Sauvegarder</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <footer class="mt-8 pb-6 text-center text-sm border-t border-gray-200 pt-6">
+      <p class="text-gray-500 mb-1">Générateur de prompts structurés</p>
+      <span class="text-blue-600">Fabrice Faucheux</span>
+    </footer>
+
+    <script>
+      let currentJsonString = "";
+      document.addEventListener('DOMContentLoaded', updateJson);
+
+      function updateJson() {
+        // Remplacement des valeurs par défaut spécifiques par des valeurs génériques
+        const role = document.getElementById('role').value || "Expert IA";
+        const task = document.getElementById('task').value || "Effectuer la tâche demandée";
+        const context = document.getElementById('context').value;
+        const tone = document.getElementById('tone').value;
+        const format = document.getElementById('format').value;
+        const inputData = document.getElementById('inputData').value;
+
+        const promptObj = {
+          "system_instruction": {
+            "role": role,
+            "objective": task,
+            "context": context || undefined
+          },
+          "constraints": {
+            "tone": tone,
+            "output_format": format,
+            "language": "French (Français)"
+          },
+          "input_data": inputData ? inputData : undefined,
+        };
+
+        const cleanObj = JSON.parse(JSON.stringify(promptObj));
+        currentJsonString = JSON.stringify(cleanObj, null, 2);
+        
+        document.getElementById('jsonOutput').innerHTML = syntaxHighlight(currentJsonString);
+      }
+
+      function copyToClipboard() {
+        navigator.clipboard.writeText(currentJsonString).then(() => {
+          const btn = document.getElementById('btnCopy');
+          const original = btn.innerHTML;
+          btn.innerHTML = '<span class="text-green-600 font-bold">Copié !</span>';
+          setTimeout(() => btn.innerHTML = original, 2000);
+        });
+      }
+
+      function saveToDrive() {
+        const btn = document.getElementById('btnSave');
+        const originalContent = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> Sauvegarde...';
+        
+        // Nom de fichier générique
+        const filename = "Prompt_Gemini_" + new Date().toISOString().slice(0,19).replace(/:/g,"-");
+        
+        // Note: google.script.run ne fonctionne que dans un environnement Google Apps Script
+        if (typeof google !== 'undefined' && google.script) {
+            google.script.run
+              .withSuccessHandler(function(response) {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+                if(response.success) {
+                  alert("Fichier sauvegardé avec succès !");
+                } else {
+                  alert("Erreur : " + response.error);
+                }
+              })
+              .withFailureHandler(function(err) {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+                alert("Erreur système : " + err);
+              })
+              .saveToDrive(filename, currentJsonString);
+        } else {
+            // Fallback si hors de l'environnement Google Apps Script (pour démo)
+            setTimeout(() => {
+                console.log("Sauvegarde simulée de : " + filename);
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+                alert("Environnement Google Apps Script non détecté. (Mode Démo)");
+            }, 1000);
+        }
+      }
+
+      function syntaxHighlight(json) {
+        if (!json) return "";
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+          let cls = 'json-number';
+          if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+              cls = 'json-key';
+            } else {
+              cls = 'json-string';
+            }
+          } else if (/true|false/.test(match)) {
+            cls = 'json-bool';
+          }
+          return '<span class="' + cls + '">' + match + '</span>';
+        });
+      }
+    </script>
+  </body>
+</html>
